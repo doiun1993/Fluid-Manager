@@ -1,5 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
+import xml.etree.ElementTree as ET
+
+
 
 def create_frames(root, group_var):
     style = ttk.Style()
@@ -102,6 +105,8 @@ def create_frames(root, group_var):
             style.configure('TCheckbutton', background='#e1e1e1')
             toggle_button.config(text="Check Off")  # 修改按钮文本为"Check on"
 
+
+
     style = ttk.Style()
     style.configure('TCheckbutton', background='#e1e1e1', padding=(1.5, -0.2), borderwidth=0, highlightthickness=0)
 
@@ -121,10 +126,12 @@ def create_frames(root, group_var):
     count_entry.grid(row=1, column=1, padx=(5, 5))
     select_deselect_button = ttk.Button(control_frame, text="Select All", command=select_all)
     select_deselect_button.grid(row=1, column=2, padx=(5, 5))
-    toggle_button = ttk.Button(control_frame, text="Check Off", command=toggle_checkboxes)  # 默认文本为"Check on"
+    toggle_button = ttk.Button(control_frame, text="Check Off", command=toggle_checkboxes)
     toggle_button.grid(row=1, column=3, padx=(5, 5))
     count_label = tk.Label(control_frame, text="Cycles: 0")
     count_label.grid(row=1, column=4, padx=(5, 0))
+
+
 
     def select_from_start(*args):
         selected_group = 0 if group_var.get() == "Group 1" else 1
@@ -208,5 +215,37 @@ def create_frames(root, group_var):
             entry.grid(row=i + 1, column=j + 3, padx=1)
         checkboxes[1].append((var, label, cycle, *entries))
         vars.append(var)
+
+    def save_to_xml():
+        root = ET.Element("root")
+        for group in checkboxes:
+            for checkbox in group:
+                if checkbox[0].get() == 1:
+                    entry = ET.SubElement(root, "entry")
+                    entry.set("label", checkbox[1].cget("text"))
+                    entry.text = ','.join(e.get() for e in checkbox[3:])  # 将所有输入框的内容连接成一个字符串
+        tree = ET.ElementTree(root)
+        tree.write("data.xml")
+
+    def load_from_xml():
+        tree = ET.parse("data.xml")
+        root = tree.getroot()
+        for entry in root.findall("entry"):
+            label = entry.get("label")
+            text = entry.text.split(',') if entry.text else []  # 如果entry.text是None，将text设置为一个空列表
+            for group in checkboxes:
+                for checkbox in group:
+                    if checkbox[1].cget("text") == label:
+                        checkbox[0].set(1)
+                        for i, entry in enumerate(checkbox[3:]):
+                            entry.delete(0, tk.END)
+                            if i < len(text):  # 检查是否有足够的文本来插入到输入框中
+                                entry.insert(0, text[i])
+
+    # 在界面上添加两个按钮
+    save_button = tk.Button(root, text="Save", command=save_to_xml)
+    save_button.pack()
+    load_button = tk.Button(root, text="Load", command=load_from_xml)
+    load_button.pack()
 
     return frame1, frame2, vars, show_frame
